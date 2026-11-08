@@ -2,71 +2,82 @@ import './style.css';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000,
-);
+let camera, scene, renderer, cube, controls;
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+function init() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000,
+  );
 
-const geometry = new THREE.BoxGeometry(1, 1, 1);
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setAnimationLoop(animate);
+  document.body.appendChild(renderer.domElement);
 
-const material = new THREE.MeshPhongMaterial({color: 0x00ff00});
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
 
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+  const material = new THREE.MeshPhongMaterial({color: 0x00ff00});
+  cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
 
-// camera.position.z = 5;
-// camera.position.x = 2;
-// camera.position.y = 1;
-camera.position.set(2, 3, 5);
-camera.lookAt(axesHelper.position);
-//camera.lookAt(0, 0, 0);
+  const axesHelper = new THREE.AxesHelper(5);
+  scene.add(axesHelper);
 
-// TUTKI KOTITEHTÄVÄÄ VARTEN
-//cube.position.set(1,1,1);
-//cube.rotation.x = Math.PI / 2; // 90 astetta
-// cube.scale.set(2,2,2,);
+  // camera.position.z = 5;
+  // camera.position.x = 2;
+  // camera.position.y = 1;
+  camera.position.set(2, 3, 5);
+  camera.lookAt(axesHelper.position);
+  //camera.lookAt(0, 0, 0);
 
-// lights
-const light = new THREE.AmbientLight(0x404040); // soft white light
-scene.add(light);
+  // TUTKI KOTITEHTÄVÄÄ VARTEN
+  //cube.position.set(1,1,1);
+  //cube.rotation.x = Math.PI / 2; // 90 astetta
+  // cube.scale.set(2,2,2,);
 
-// White directional light at half intensity shining from the top.
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-scene.add(directionalLight);
+  // lights
+  const light = new THREE.AmbientLight(0x404040); // soft white light
+  scene.add(light);
 
-let controls = new OrbitControls(camera, renderer.domElement);
-controls.listenToKeyEvents(window); // optional
+  // White directional light at half intensity shining from the top.
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  scene.add(directionalLight);
 
-//controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.listenToKeyEvents(window); // optional
 
-controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-controls.dampingFactor = 0.05;
+  //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
 
-controls.screenSpacePanning = false;
+  controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+  controls.dampingFactor = 0.05;
 
-controls.minDistance = 1;
-controls.maxDistance = 10;
+  controls.screenSpacePanning = false;
 
-// const canvas = document.querySelector('canvas');
-// const gl = canvas.getContext('webgl2');
+  controls.minDistance = 1;
+  controls.maxDistance = 10;
+  window.addEventListener('resize', onWindowResize);
+}
 
-// gl.clearColor(0.0, 0.5, 0.8, 1.0);
-// gl.clear(gl.COLOR_BUFFER_BIT);
+init();
 
 function animate(time) {
   //cube.rotation.x = time / 2000;
   //cube.rotation.y = time / 1000;
-  controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
+  controls.update();
+  render();
+}
 
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function render() {
   renderer.render(scene, camera);
 }
-renderer.setAnimationLoop(animate);
