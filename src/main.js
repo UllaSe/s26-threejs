@@ -1,8 +1,11 @@
 import './style.css';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 
 let camera, scene, renderer, cube, controls;
+const base = import.meta.env.BASE_URL;
 
 function init() {
   scene = new THREE.Scene();
@@ -22,7 +25,7 @@ function init() {
 
   const material = new THREE.MeshPhongMaterial({color: 0x00ff00});
   cube = new THREE.Mesh(geometry, material);
-  scene.add(cube);
+  // scene.add(cube);
 
   const axesHelper = new THREE.AxesHelper(5);
   scene.add(axesHelper);
@@ -41,11 +44,11 @@ function init() {
 
   // lights
   const light = new THREE.AmbientLight(0x404040); // soft white light
-  scene.add(light);
+  //scene.add(light);
 
   // White directional light at half intensity shining from the top.
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-  scene.add(directionalLight);
+  //scene.add(directionalLight);
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.listenToKeyEvents(window); // optional
@@ -62,7 +65,41 @@ function init() {
   window.addEventListener('resize', onWindowResize);
 }
 
-init();
+async function loadHDR() {
+  const loader = new HDRLoader();
+  const url = `${base}hdr/kloofendal_48d_partly_cloudy_puresky_1k.hdr`;
+
+  try {
+    const envMap = await loader.loadAsync(url);
+
+    envMap.mapping = THREE.EquirectangularReflectionMapping;
+
+    // Ympäristön valaistus ja heijastukset
+    scene.environment = envMap;
+
+    // Näkyvä taustakuva
+    scene.background = envMap;
+
+    console.log('HDR loaded');
+  } catch (error) {
+    console.error('HDR loading failed:', error);
+  }
+}
+
+async function loadModels(url) {
+  const loader = new GLTFLoader();
+
+  try {
+    const gltf = await loader.loadAsync(url);
+    const model = gltf.scene;
+    // model.scale.set(10,10,10);
+    model.scale.setScalar(10);
+    scene.add(model);
+    console.log('Model loaded:', model);
+  } catch (error) {
+    console.error('Model loading failed:', error);
+  }
+}
 
 function animate(time) {
   //cube.rotation.x = time / 2000;
@@ -81,3 +118,8 @@ function onWindowResize() {
 function render() {
   renderer.render(scene, camera);
 }
+
+init();
+loadHDR();
+loadModels(`${base}models/bottle/WaterBottle.gltf`);
+console.log(scene);
