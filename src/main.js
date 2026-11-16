@@ -21,6 +21,8 @@ let group;
 
 function init() {
   scene = new THREE.Scene();
+  group = new THREE.Group();
+  scene.add(group);
   camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
@@ -76,7 +78,7 @@ function init() {
   controls.maxDistance = 10;
 
   initVR();
-
+  console.log(scene);
   window.addEventListener('resize', onWindowResize);
 }
 
@@ -152,12 +154,74 @@ function initVR() {
   raycaster = new THREE.Raycaster();
 }
 
-function onSelectStart() {
-  console.log('Puristettu');
+function onSelectStart(event) {
+  const controller = event.target;
+
+  const intersections = getIntersections(controller);
+
+  if (intersections.length > 0) {
+    const intersection = intersections[0];
+
+    const object = intersection.object;
+    object.material.emissive.b = 1;
+    controller.attach(object);
+
+    controller.userData.selected = object;
+  }
+
+  controller.userData.targetRayMode = event.data.targetRayMode;
 }
 
-function onSelectEnd() {
-  console.log('Puristus pois');
+function onSelectEnd(event) {
+  const controller = event.target;
+
+  if (controller.userData.selected !== undefined) {
+    const object = controller.userData.selected;
+    object.material.emissive.b = 0;
+    group.attach(object);
+
+    controller.userData.selected = undefined;
+  }
+}
+
+function getIntersections(controller) {
+  controller.updateMatrixWorld();
+
+  raycaster.setFromXRController(controller);
+
+  return raycaster.intersectObjects(group.children, true);
+}
+
+function intersectObjects(controller) {
+  // Do not highlight in mobile-ar
+
+  if (controller.userData.targetRayMode === 'screen') return;
+
+  // Do not highlight when already selected
+
+  if (controller.userData.selected !== undefined) return;
+
+  const line = controller.getObjectByName('line');
+  const intersections = getIntersections(controller);
+
+  if (intersections.length > 0) {
+    const intersection = intersections[0];
+
+    const object = intersection.object;
+    object.material.emissive.r = 1;
+    intersected.push(object);
+
+    line.scale.z = intersection.distance;
+  } else {
+    line.scale.z = 5;
+  }
+}
+
+function cleanIntersected() {
+  while (intersected.length) {
+    const object = intersected.pop();
+    object.material.emissive.r = 0;
+  }
 }
 
 async function loadHDR() {
@@ -189,7 +253,7 @@ async function loadModels(url) {
     const model = gltf.scene;
     // model.scale.set(10,10,10);
     // model.scale.setScalar(10);
-    scene.add(model);
+    group.add(model);
     console.log('Model loaded:', model);
   } catch (error) {
     console.error('Model loading failed:', error);
@@ -211,6 +275,10 @@ function onWindowResize() {
 }
 
 function render() {
+  cleanIntersected();
+
+  intersectObjects(controller1);
+  intersectObjects(controller2);
   renderer.render(scene, camera);
 }
 
